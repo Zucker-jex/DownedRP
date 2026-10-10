@@ -52,10 +52,6 @@ local function setUntargetable(player, down)
     end
 end
 
--- Client-side speed helper. The server sets the authoritative value; this
--- one keeps the local render in sync. In B42 the crawl pose takes its
--- movement step from the animation SpeedScale, so the actual crawl speed is
--- controlled by the _knockedd_walk/run/sprint XML files.
 local function applyCrawlSpeed(player)
     if player == nil then return end
     local pct = cfg().knockdownCrawlSpeedPct or 30
@@ -132,34 +128,36 @@ function K.enter(player)
     end
 end
 
+local function snapshotTreatedParts(player, md)
+    md.drp_preTreated = {}
+    if not md.drp_noSelfTreat then return end
+    local bd = player:getBodyDamage()
+    local parts = bd and bd:getBodyParts()
+    if parts == nil then return end
+    for i = 0, BodyPartType.ToIndex(BodyPartType.MAX) - 1 do
+        local bp = parts:get(i)
+        if bp ~= nil then
+            md.drp_preTreated[i] = {
+                bandaged = bp:bandaged(),
+                stitched = bp:stitched(),
+                splint   = bp:isSplint(),
+                bullet   = bp:haveBullet(),
+                glass    = bp:haveGlass(),
+            }
+        end
+    end
+end
+
 local function enterDownedState(player, startMs)
     if player == nil then return end
     local md = player:getModData()
     md.drp_downed = true
     md.drp_downedStart = startMs
     md.drp_fallStart = nil
+    md.drp_noSelfTreat = not DRP.selfTreatAllowed(player)
     K._localHolding = true
 
-    md.drp_noSelfTreat = not DRP.selfTreatAllowed(player)
-    md.drp_preTreated = {}
-    if md.drp_noSelfTreat then
-        local bd = player:getBodyDamage()
-        local parts = bd and bd:getBodyParts()
-        if parts ~= nil then
-            for i = 0, BodyPartType.ToIndex(BodyPartType.MAX) - 1 do
-                local bp = parts:get(i)
-                if bp ~= nil then
-                    md.drp_preTreated[i] = {
-                        bandaged  = bp:bandaged(),
-                        stitched  = bp:stitched(),
-                        splint    = bp:isSplint(),
-                        bullet    = bp:haveBullet(),
-                        glass     = bp:haveGlass(),
-                    }
-                end
-            end
-        end
-    end
+    snapshotTreatedParts(player, md)
 
     clearDeathResidue(player, true)
     player:setVariable("knockedd_getup", false)
@@ -218,9 +216,7 @@ function K.getUp(player)
     setMovementLocked(player, false)
     setUntargetable(player, false)
 
-    if not md.drp_assisted then
-        restoreNormalSpeed(player)
-    end
+    if not md.drp_assisted then restoreNormalSpeed(player) end
     K._wasDowned = false
 
     local hp = cfg().knockdownReviveHp or 30
@@ -342,7 +338,6 @@ end
 
 function K.resume(player, start)
     enterDownedState(player, start)
-
     if isClient() then
         sendClientCommand(player, "DRPKnock", "resumed", {})
     end
@@ -369,6 +364,109 @@ function K.selfGetUp(player)
 end
 
 --------------------------------------------------------------------------------
+-- Downed-state helpers, split out of onPlayerUpdate so no single function
+-- accumulates enough locals to trip LuaJ's 200-slot limit.
+--------------------------------------------------------------------------------
+
+local function updateSpeedState(player, md)
+    local isDownedNow = md.drp_downed == true
+    if isDownedNow ~= K._wasDowned then
+        if isDownedNow then
+            applyCrawlSpeed(player)
+        else
+            if not md.drp_assisted then restoreNormalSpeed(player) end
+        end
+        K._wasDowned = isDownedNow
+    end
+end
+
+local function handleFallPose(player, md)
+    if player:getVariableBoolean("knockedd_fall") then
+        if not md.drp_fallStart then
+            md.drp_fallStart = DRP.nowMs()
+        elseif DRP.nowMs() - md.drp_fallStart > FALL_TIMEOUT_MS then
+            player:setVariable("knockedd_fall", false)
+            player:setVariable("knockedd", true)
+            md.drp_fallStart = nil
+        end
+    else
+        md.drp_fallStart = nil
+    end
+end
+
+local function undoForbiddenTreatment(player, md)
+    if not md.drp_noSelfTreat then return end
+    local bd = player:getBodyDamage()
+    local parts = bd and bd:getBodyParts()
+    if parts == nil then return end
+    local pre = md.drp_preTreated or {}
+    local undone = false
+    for i = 0, BodyPartType.ToIndex(BodyPartType.MAX) - 1 do
+        local bp = parts:get(i)
+        if bp ~= nil then
+            local s = pre[i] or {}
+            if bp:bandaged() and not s.bandaged then
+                bp:setBandaged(false, false); undone = true
+            end
+            if bp:stitched() and not s.stitched then
+                bp:setStitched(false); undone = true
+            end
+            if bp:isSplint() and not s.splint then
+                bp:setSplint(false, 0); undone = true
+            end
+            if bp:haveBullet() and not s.bullet then
+                bp:setHaveBullet(false, 0); undone = true
+            end
+            if bp:haveGlass() and not s.glass then
+                bp:setHaveGlass(false); undone = true
+            end
+        end
+    end
+    if undone and DRP.notifySelfTreatBlocked then
+        DRP.notifySelfTreatBlocked(player)
+    end
+end
+
+local function handleDownedMovement(player, C)
+    local isFalling = player:getVariableBoolean("knockedd_fall")
+    local isGetup   = player:getVariableBoolean("knockedd_getup")
+    local canMove   = (C.moveWhileDowned ~= false) and (not isFalling) and (not isGetup)
+    if canMove then
+        if player.setBlockMovement  then player:setBlockMovement(false) end
+        if player.setIgnoreMovement then player:setIgnoreMovement(false) end
+        if player.setOnFloor and player:isOnFloor() then
+            player:setOnFloor(false)
+        end
+        if not player:getVariableBoolean("knockedd") then
+            player:setVariable("knockedd", true)
+        end
+        applyCrawlSpeed(player)
+    else
+        if player.setBlockMovement  then player:setBlockMovement(true) end
+        if player.setIgnoreMovement then player:setIgnoreMovement(true) end
+    end
+end
+
+local function checkBleedout(player, md, C)
+    if DRP.nowMs() < (K._triggerGrace or 0) then return end
+    local start = md.drp_downedStart or DRP.nowMs()
+    local dur = (C.bleedoutTimer ~= false) and (C.knockdownDurationSec or 300) * 1000 or 0
+    if dur > 0 and (DRP.nowMs() - start) >= dur then
+        K.realDeath(player)
+        return
+    end
+    local crawled = DRP.Crawl.track(player, start)
+    if not DRP.tickDownedHealth(player, start, crawled) then
+        K.realDeath(player)
+        return
+    end
+    local dur2 = (C.bleedoutTimer ~= false) and (C.knockdownDurationSec or 300) * 1000 or 0
+    if dur2 > 0 and md.drp_downedStart and (DRP.nowMs() - md.drp_downedStart) >= dur2 then
+        K.realDeath(player)
+    end
+end
+
+--------------------------------------------------------------------------------
 -- OnPlayerUpdate
 --------------------------------------------------------------------------------
 
@@ -376,15 +474,14 @@ function K.onPlayerUpdate(player)
     if player == nil or player ~= getPlayer() then return end
     if K._deathWatchAt then K.deathWatchdog(player) end
     if K._realKillAt then
-        if DRP.nowMs() >= K._realKillAt then
-            K.finalKill(player)
-        end
+        if DRP.nowMs() >= K._realKillAt then K.finalKill(player) end
         return
     end
     if player:isDead() then
         if DRP.Knockdown.uiHide then DRP.Knockdown.uiHide() end
         return
     end
+
     local C = cfg()
     if C.knockdownEnable == false then return end
 
@@ -392,91 +489,16 @@ function K.onPlayerUpdate(player)
         K._dyingForReal = false
     end
     if K._dyingForReal then return end
+
     local md = player:getModData()
 
-    -- Speed state transition
-    local isDownedNow = md.drp_downed == true
-    if isDownedNow ~= K._wasDowned then
-        if isDownedNow then
-            applyCrawlSpeed(player)
-        else
-            if not md.drp_assisted then
-                restoreNormalSpeed(player)
-            end
-        end
-        K._wasDowned = isDownedNow
-    end
+    updateSpeedState(player, md)
 
-    -- Downed state -----------------------------------------------------------
     if md.drp_downed then
-        if player:getVariableBoolean("knockedd_fall") then
-            if not md.drp_fallStart then
-                md.drp_fallStart = DRP.nowMs()
-            elseif DRP.nowMs() - md.drp_fallStart > FALL_TIMEOUT_MS then
-                player:setVariable("knockedd_fall", false)
-                player:setVariable("knockedd", true)
-                md.drp_fallStart = nil
-            end
-        else
-            md.drp_fallStart = nil
-        end
-
+        handleFallPose(player, md)
         if DRP.nowMs() < (K._triggerGrace or 0) then return end
-        local start = md.drp_downedStart or DRP.nowMs()
-        local dur = (C.bleedoutTimer ~= false) and (C.knockdownDurationSec or 300) * 1000 or 0
-        if dur > 0 and (DRP.nowMs() - start) >= dur then
-            K.realDeath(player)
-        else
-            local crawled = DRP.Crawl.track(player, start)
-            if not DRP.tickDownedHealth(player, start, crawled) then
-                K.realDeath(player)
-                return
-            end
-        end
-
-        -- Undo any treatment applied while self-treatment is forbidden.
-        -- Catches the medical actions that bypass ISTimedActionQueue.add in
-        -- B42 (the health panel applies its edits directly), and surfaces the
-        -- reason with a HaloText prompt.
-        if md.drp_noSelfTreat then
-            local bd = player:getBodyDamage()
-            local parts = bd and bd:getBodyParts()
-            if parts ~= nil then
-                local pre = md.drp_preTreated or {}
-                local undone = false
-                for i = 0, BodyPartType.ToIndex(BodyPartType.MAX) - 1 do
-                    local bp = parts:get(i)
-                    if bp ~= nil then
-                        local s = pre[i] or {}
-
-                        if bp:bandaged() and not s.bandaged then
-                            bp:setBandaged(false, false)
-                            undone = true
-                        end
-                        if bp:stitched() and not s.stitched then
-                            bp:setStitched(false)
-                            undone = true
-                        end
-                        if bp:isSplint() and not s.splint then
-                            bp:setSplint(false, 0)
-                            undone = true
-                        end
-                        if bp:haveBullet() and not s.bullet then
-                            bp:setHaveBullet(false, 0)
-                            undone = true
-                        end
-                        if bp:haveGlass() and not s.glass then
-                            bp:setHaveGlass(false)
-                            undone = true
-                        end
-                    end
-                end
-                if undone and DRP.notifySelfTreatBlocked then
-                    DRP.notifySelfTreatBlocked(player)
-                end
-            end
-        end
-
+        checkBleedout(player, md, C)
+        undoForbiddenTreatment(player, md)
         if player:isOnKillDone() or player:isOnDeathDone()
            or player:isDeathDragDown()
            or (player:getHitReaction() == "EndDeath") then
@@ -485,30 +507,7 @@ function K.onPlayerUpdate(player)
         if player:isSneaking()  and player.setSneaking  then player:setSneaking(false) end
         if player:isRunning()   and player.setRunning   then player:setRunning(false) end
         if player:isSprinting() and player.setSprinting then player:setSprinting(false) end
-
-        local isFalling = player:getVariableBoolean("knockedd_fall")
-        local isGetup   = player:getVariableBoolean("knockedd_getup")
-        local canMove   = (C.moveWhileDowned ~= false) and (not isFalling) and (not isGetup)
-
-        if canMove then
-            if player.setBlockMovement  then player:setBlockMovement(false) end
-            if player.setIgnoreMovement then player:setIgnoreMovement(false) end
-            if player.setOnFloor and player:isOnFloor() then
-                player:setOnFloor(false)
-            end
-            if not player:getVariableBoolean("knockedd") then
-                player:setVariable("knockedd", true)
-            end
-            applyCrawlSpeed(player)
-        else
-            if player.setBlockMovement  then player:setBlockMovement(true) end
-            if player.setIgnoreMovement then player:setIgnoreMovement(true) end
-        end
-
-        local dur2 = (C.bleedoutTimer ~= false) and (C.knockdownDurationSec or 300) * 1000 or 0
-        if dur2 > 0 and md.drp_downedStart and (DRP.nowMs() - md.drp_downedStart) >= dur2 then
-            K.realDeath(player)
-        end
+        handleDownedMovement(player, C)
         return
     end
 
@@ -537,31 +536,29 @@ function K.onPlayerUpdate(player)
         end
     end
 end
-Events.OnPlayerUpdate.Add(K.onPlayerUpdate)
+if Events.OnPlayerUpdate then Events.OnPlayerUpdate.Add(K.onPlayerUpdate) end
 
 --------------------------------------------------------------------------------
 -- OnPlayerGetDamage
 --------------------------------------------------------------------------------
 
-function K.onPlayerGetDamage(player)
+local function onPlayerGetDamage(player)
     local p = getPlayer()
     if p == nil or (player ~= nil and player ~= p) then return end
     local C = cfg()
     if C.knockdownEnable == false then return end
     local md = p:getModData()
-
     if md.drp_downed and not K._dyingForReal then
         DRP.tickDownedHealth(p, md.drp_downedStart, DRP.Crawl.track(p, md.drp_downedStart))
-        return
     end
 end
-if Events.OnPlayerGetDamage then Events.OnPlayerGetDamage.Add(K.onPlayerGetDamage) end
+if Events.OnPlayerGetDamage then Events.OnPlayerGetDamage.Add(onPlayerGetDamage) end
 
 --------------------------------------------------------------------------------
 -- OnWeaponHitCharacter
 --------------------------------------------------------------------------------
 
-function K.onWeaponHit(attacker, victim)
+local function onWeaponHit(attacker, victim)
     local p = getPlayer()
     if p == nil or victim ~= p or attacker == nil or attacker == p then return end
     if K._dyingForReal or K._realKillAt then return end
@@ -574,17 +571,17 @@ function K.onWeaponHit(attacker, victim)
     elseif instanceof(attacker, "IsoPlayer") and not attacker:isAnimal() then
         if C.downedPlayerKill ~= true then return end
     else
-        return end
-
+        return
+    end
     K.realDeath(p)
 end
-Events.OnWeaponHitCharacter.Add(K.onWeaponHit)
+if Events.OnWeaponHitCharacter then Events.OnWeaponHitCharacter.Add(onWeaponHit) end
 
 --------------------------------------------------------------------------------
 -- OnCreatePlayer
 --------------------------------------------------------------------------------
 
-function K.onCreatePlayer(idx, player)
+local function onCreatePlayer(idx, player)
     player = player or getSpecificPlayer(idx)
     if player == nil or not player:isLocalPlayer() then return end
     K._localHolding = false
@@ -608,13 +605,13 @@ function K.onCreatePlayer(idx, player)
     setUntargetable(player, false)
     if DRP.Knockdown.uiHide then DRP.Knockdown.uiHide() end
 end
-Events.OnCreatePlayer.Add(K.onCreatePlayer)
+if Events.OnCreatePlayer then Events.OnCreatePlayer.Add(onCreatePlayer) end
 
 --------------------------------------------------------------------------------
 -- OnPlayerDeath
 --------------------------------------------------------------------------------
 
-function K.onLocalDeath(player)
+local function onLocalDeath(player)
     if player ~= getPlayer() then return end
     local md = player:getModData()
     md.drp_downed = false
@@ -629,13 +626,13 @@ function K.onLocalDeath(player)
     if not md.drp_assisted then restoreNormalSpeed(player) end
     if DRP.Knockdown.uiHide then DRP.Knockdown.uiHide() end
 end
-Events.OnPlayerDeath.Add(K.onLocalDeath)
+if Events.OnPlayerDeath then Events.OnPlayerDeath.Add(onLocalDeath) end
 
 --------------------------------------------------------------------------------
 -- Debug context menu
 --------------------------------------------------------------------------------
 
-function K.onFillContext(playerIndex, context, worldObjects)
+local function onFillDebugContext(playerIndex, context, worldObjects)
     if cfg().knockdownDebugMenu == false then return end
     local player = getSpecificPlayer(playerIndex)
     if player == nil then return end
@@ -650,7 +647,7 @@ function K.onFillContext(playerIndex, context, worldObjects)
         context:addOption("Knock down (DEBUG)", player, function(p) K.enter(p) end)
     end
 end
-Events.OnFillWorldObjectContextMenu.Add(K.onFillContext)
+if Events.OnFillWorldObjectContextMenu then Events.OnFillWorldObjectContextMenu.Add(onFillDebugContext) end
 
 --------------------------------------------------------------------------------
 -- Server commands
@@ -663,7 +660,6 @@ local function onServerCommand(module, command, args)
         if p and p ~= getPlayer() then
             p:getModData().drp_remoteState = args.state
         end
-
         if K._downSet == nil then K._downSet = {} end
         if args.state == "down" then K._downSet[args.id] = true
         elseif args.state == "up" then K._downSet[args.id] = nil end
@@ -682,9 +678,7 @@ local function onServerCommand(module, command, args)
     elseif command == "forcegetup" then
         K._reviverName = nil
         local me = getPlayer()
-        if me and me:getModData().drp_downed then
-            K.getUp(me)
-        end
+        if me and me:getModData().drp_downed then K.getUp(me) end
     elseif command == "downverdict" and args then
         K._awaitingEnter = false
         local player = getPlayer()
@@ -713,13 +707,13 @@ local function onServerCommand(module, command, args)
         end
     end
 end
-Events.OnServerCommand.Add(onServerCommand)
+if Events.OnServerCommand then Events.OnServerCommand.Add(onServerCommand) end
 
 --------------------------------------------------------------------------------
 -- OnTick - sync remote downed players
 --------------------------------------------------------------------------------
 
-function K.onTick()
+local function onTickSync()
     local me = getPlayer()
     if me == nil then return end
     local players = getOnlinePlayers()
@@ -729,7 +723,6 @@ function K.onTick()
         local p = players:get(i)
         if p and p ~= me then
             local md = p:getModData()
-
             local down
             if downSet ~= nil then
                 down = (downSet[p:getOnlineID()] == true)
@@ -751,7 +744,7 @@ function K.onTick()
         end
     end
 end
-if isClient() then Events.OnTick.Add(K.onTick) end
+if isClient() and Events.OnTick then Events.OnTick.Add(onTickSync) end
 
 --------------------------------------------------------------------------------
 -- UI Panel fallback
@@ -777,7 +770,6 @@ if ISPanel ~= nil and K.uiShow == nil then
         if md == nil or md.drp_downedStart == nil or dur <= 0 then return 0, 0 end
         local left = dur - (DRP.nowMs() - md.drp_downedStart)
         if left < 0 then left = 0 end
-        if dur <= 0 then return 0, 0 end
         return left / dur, left
     end
 
@@ -837,13 +829,6 @@ end
 
 --------------------------------------------------------------------------------
 -- ISTimedActionQueue hook
---
--- While downed:
---   * Movement actions are always allowed (crawling).
---   * Medical actions AND the health panel are gated on selfTreatAllowed.
---     When self-treatment is forbidden the panel cannot be opened, so the
---     player has no route to bandage a wound. A HaloText prompt explains why.
---   * Everything else is blocked silently.
 --------------------------------------------------------------------------------
 
 if ISTimedActionQueue ~= nil then
@@ -853,15 +838,11 @@ if ISTimedActionQueue ~= nil then
         if p ~= nil then
             local md = p:getModData()
             if md and md.drp_downed and not (action and action.dbnoBypassLockout) then
-                local name = DRP.actionName(action)
-
                 if DRP.isMovementAction and DRP.isMovementAction(action) then
                     return _origAdd(action)
                 end
-
                 local isUI  = DRP.isUIAction and DRP.isUIAction(action)
                 local isMed = DRP.isMedicalAction(action)
-
                 if isUI or isMed then
                     if DRP.selfTreatAllowed(p) then
                         return _origAdd(action)
@@ -871,7 +852,6 @@ if ISTimedActionQueue ~= nil then
                     end
                     return
                 end
-
                 return
             end
         end
@@ -940,7 +920,8 @@ function DRPTestRevive:isValid() return self.character:getModData().drp_downed =
 function DRPTestRevive:update() end
 function DRPTestRevive:start()
     local nm = "Someone"
-    local d=self.character:getDescriptor(); if d and d.getForename then nm = d:getForename() or nm end
+    local d = self.character:getDescriptor()
+    if d and d.getForename then nm = d:getForename() or nm end
     DRP.Knockdown._reviverName = nm
 end
 function DRPTestRevive:stop()
@@ -963,13 +944,13 @@ function DRPTestRevive:new(character)
     return o
 end
 
-function DRP.HelpUp.onSelect(worldobjects, player, target)
+local function onHelpUpSelect(worldobjects, player, target)
     if luautils.walkAdj(player, target:getCurrentSquare()) then
         ISTimedActionQueue.add(DRPHelpUp:new(player, target))
     end
 end
 
-function DRP.HelpUp.onFillWorld(playerIndex, context, worldObjects)
+local function onFillHelpUp(playerIndex, context, worldObjects)
     local player = getSpecificPlayer(playerIndex)
     if player == nil then return end
     if player:getModData().drp_downed then return end
@@ -1001,15 +982,15 @@ function DRP.HelpUp.onFillWorld(playerIndex, context, worldObjects)
     end
     if target == nil then return end
 
-    context:addOption("Help Up " .. DRP.displayName(target), worldObjects, DRP.HelpUp.onSelect, player, target)
+    context:addOption("Help Up " .. DRP.displayName(target), worldObjects, onHelpUpSelect, player, target)
 end
-Events.OnFillWorldObjectContextMenu.Add(DRP.HelpUp.onFillWorld)
+if Events.OnFillWorldObjectContextMenu then Events.OnFillWorldObjectContextMenu.Add(onFillHelpUp) end
 
 --------------------------------------------------------------------------------
 -- Self get-up context menu
 --------------------------------------------------------------------------------
 
-function DRP.Knockdown.onFillSelfContext(playerIndex, context, worldObjects)
+local function onFillSelfContext(playerIndex, context, worldObjects)
     local player = getSpecificPlayer(playerIndex)
     if player == nil then return end
     local md = player:getModData()
@@ -1026,4 +1007,4 @@ function DRP.Knockdown.onFillSelfContext(playerIndex, context, worldObjects)
             function(p) DRP.Knockdown.selfGetUp(p) end)
     end
 end
-Events.OnFillWorldObjectContextMenu.Add(DRP.Knockdown.onFillSelfContext)
+if Events.OnFillWorldObjectContextMenu then Events.OnFillWorldObjectContextMenu.Add(onFillSelfContext) end

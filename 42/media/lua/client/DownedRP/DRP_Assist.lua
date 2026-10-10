@@ -1,14 +1,6 @@
 --
 -- DownedRP - assisted walk (方案B).
 --
--- After a teammate revives a downed player, the rescued player follows the
--- rescuer at reduced speed for both. The hold breaks if they get too far
--- apart, if the rescued player goes down again, or if either uses the
--- "Release Assist" context menu option.
---
--- No new animations are required. The assisted player simply walks normally
--- while pathfinding to the assister.
---
 
 DRP = DRP or {}
 
@@ -34,97 +26,104 @@ if isClient() then
     end
 
     local function stopAssist(player)
-            local md = player and player:getModData()
-            if not md then return end
-            md.drp_assisted = false
-            md.drp_assisterId = nil
-            if player then player:setSpeedMod(1.0) end
-            local task = A._followTasks[player]
-            if task then
-                if ISTimedActionQueue and ISTimedActionQueue.remove then
-                    ISTimedActionQueue.remove(task)
-                elseif task.stop then
-                    task:stop()
-                end
-                A._followTasks[player] = nil
+        local md = player and player:getModData()
+        if not md then return end
+        md.drp_assisted = false
+        md.drp_assisterId = nil
+        if player and player.setSpeedMod then player:setSpeedMod(1.0) end
+        local task = A._followTasks[player]
+        if task then
+            if ISTimedActionQueue and ISTimedActionQueue.remove then
+                ISTimedActionQueue.remove(task)
+            elseif task.stop then
+                task:stop()
             end
+            A._followTasks[player] = nil
+        end
+    end
+
+    -- Periodic check
+    local _assistTickAccumulator = 0
+    local function onAssistTick()
+        _assistTickAccumulator = _assistTickAccumulator + 1
+        if _assistTickAccumulator < 10 then return end
+        _assistTickAccumulator = 0
+
+        local me = getPlayer()
+        if me == nil then return end
+        if not isAssisted(me) then return end
+
+        local assister = getAssister(me)
+        if assister == nil then
+            stopAssist(me)
+            sendClientCommand(me, "DRPKnock", "assiststop", {})
+            return
         end
 
-    -- Periodic check: distance, re-apply speed mod, pathfind to assister
-        -- Run every 200ms instead of every frame for performance
-        local _assistTickAccumulator = 0
-        Events.OnTick.Add(function()
-            _assistTickAccumulator = _assistTickAccumulator + 1
-            if _assistTickAccumulator < 10 then return end  -- ~200ms at 50fps
-            _assistTickAccumulator = 0
+        local dist = math.sqrt((me:getX() - assister:getX())^2 + (me:getY() - assister:getY())^2)
+        local breakDist = (DRP.Config and DRP.Config.assistBreakDistance) or 5
+        local followDist = (DRP.Config and DRP.Config.assistFollowDistance) or 2
 
-            local me = getPlayer()
-            if me == nil then return end
-            if not isAssisted(me) then return end
+        if dist > breakDist then
+            stopAssist(me)
+            sendClientCommand(me, "DRPKnock", "assiststop", {})
+            return
+        end
 
-            local assister = getAssister(me)
-            if assister == nil then
-                stopAssist(me)
-                sendClientCommand(me, "DRPKnock", "assiststop", {})
-                return
-            end
+        local mod = ((DRP.Config and DRP.Config.assistSpeedModifier) or 60) / 100.0
+        if me.setSpeedMod then me:setSpeedMod(mod) end
+        if assister.setSpeedMod then assister:setSpeedMod(mod) end
 
-            local dist = math.sqrt((me:getX() - assister:getX())^2 + (me:getY() - assister:getY())^2)
-            local breakDist = DRP.Config.assistBreakDistance or 5
-            local followDist = DRP.Config.assistFollowDistance or 2
-
-            if dist > breakDist then
-                stopAssist(me)
-                sendClientCommand(me, "DRPKnock", "assiststop", {})
-                return
-            end
-
-            -- Re-apply speed modifier in case it was cleared
-            local mod = (DRP.Config.assistSpeedModifier or 60) / 100.0
-            me:setSpeedMod(mod)
-            assister:setSpeedMod(mod)
-
-            -- If far enough, pathfind to assister
-            if dist > followDist then
-                if A._followTasks[me] == nil or not A._followTasks[me]:isValid() then
+        if dist > followDist then
+            if A._followTasks[me] == nil or not A._followTasks[me]:isValid() then
+                if DRPAssistFollow then
                     local action = DRPAssistFollow:new(me, assister)
-                    ISTimedActionQueue.add(action)
+                    if ISTimedActionQueue and ISTimedActionQueue.add then
+                        ISTimedActionQueue.add(action)
+                    end
                     A._followTasks[me] = action
-            end
-            else
-                -- Close enough, stop the follow action if running
-                if A._followTasks[me] then
-                    ISTimedActionQueue.remove(A._followTasks[me])
-                    A._followTasks[me] = nil
                 end
             end
-        end)
+        else
+            if A._followTasks[me] then
+                if ISTimedActionQueue and ISTimedActionQueue.remove then
+                    ISTimedActionQueue.remove(A._followTasks[me])
+                end
+                A._followTasks[me] = nil
+            end
+        end
+    end
+    if Events.OnTick then Events.OnTick.Add(onAssistTick) end
 
     -- Context menu: Release Assist
-    Events.OnFillWorldObjectContextMenu.Add(function(playerIndex, context, worldObjects)
+    local function onFillAssistContext(playerIndex, context, worldObjects)
         local player = getSpecificPlayer(playerIndex)
         if player == nil then return end
         if not isAssisted(player) then return end
-
         context:addOption(getText("IGUI_DRP_ReleaseAssist"), player, function(p)
             stopAssist(p)
             sendClientCommand(p, "DRPKnock", "assiststop", {})
         end)
-    end)
+    end
+    if Events.OnFillWorldObjectContextMenu then
+        Events.OnFillWorldObjectContextMenu.Add(onFillAssistContext)
+    end
 
-    -- Clean up on death / disconnect
-    Events.OnPlayerDeath.Add(function(player)
+    -- Clean up on death
+    local function onPlayerDeathCleanup(player)
         if player ~= getPlayer() then return end
         stopAssist(player)
-    end)
+    end
+    if Events.OnPlayerDeath then Events.OnPlayerDeath.Add(onPlayerDeathCleanup) end
 
-    Events.OnCreatePlayer.Add(function(idx, player)
+    local function onCreatePlayerReset(idx, player)
         player = player or getSpecificPlayer(idx)
         if player == nil or not player:isLocalPlayer() then return end
         local md = player:getModData()
         md.drp_assisted = false
         md.drp_assisterId = nil
-    end)
+    end
+    if Events.OnCreatePlayer then Events.OnCreatePlayer.Add(onCreatePlayerReset) end
 end
 
 --------------------------------------------------------------------------------
@@ -155,13 +154,9 @@ if isClient() then
         local me = self.character
         local assister = self.assister
         if me == nil or assister == nil then return end
-
-        -- Re-apply speed modifier
-        local mod = (DRP.Config.assistSpeedModifier or 60) / 100.0
-            me:setSpeedMod(mod)
-            assister:setSpeedMod(mod)
-
-        -- Pathfind to assister
+        local mod = ((DRP.Config and DRP.Config.assistSpeedModifier) or 60) / 100.0
+        if me.setSpeedMod then me:setSpeedMod(mod) end
+        if assister.setSpeedMod then assister:setSpeedMod(mod) end
         me:getPathFindBehavior2():pathToLocation(assister:getX(), assister:getY(), assister:getZ())
     end
 
@@ -180,7 +175,7 @@ if isClient() then
     function DRPAssistFollow:new(character, assister)
         local o = ISBaseTimedAction.new(self, character)
         o.assister = assister
-        o.maxTime = -1  -- run until stopped
+        o.maxTime = -1
         o.stopOnWalk = false
         o.stopOnRun = false
         return o
@@ -192,7 +187,7 @@ end
 --------------------------------------------------------------------------------
 
 if isServer() then
-    Events.OnTick.Add(function()
+    local function onAssistServerTick()
         local players = getOnlinePlayers()
         if players == nil then return end
         for i = 0, players:size() - 1 do
@@ -205,30 +200,30 @@ if isServer() then
                     if assister == nil or assister:isDead() then
                         md.drp_assisted = false
                         md.drp_assisterId = nil
-                        p:setSpeedMod(1.0)
+                        if p.setSpeedMod then p:setSpeedMod(1.0) end
                     else
                         local dist = math.sqrt((p:getX() - assister:getX())^2 + (p:getY() - assister:getY())^2)
-                        local breakDist = DRP.Config.assistBreakDistance or 5
+                        local breakDist = (DRP.Config and DRP.Config.assistBreakDistance) or 5
                         if dist > breakDist then
                             md.drp_assisted = false
                             md.drp_assisterId = nil
-                            p:setSpeedMod(1.0)
-                            assister:setSpeedMod(1.0)
+                            if p.setSpeedMod then p:setSpeedMod(1.0) end
+                            if assister.setSpeedMod then assister:setSpeedMod(1.0) end
                             sendServerCommand(p, "DRPKnock", "assiststop", {})
                             sendServerCommand(assister, "DRPKnock", "assiststop", {})
                         else
-                            local mod = (DRP.Config.assistSpeedModifier or 60) / 100.0
-                            p:setSpeedMod(mod)
-                            assister:setSpeedMod(mod)
+                            local mod = ((DRP.Config and DRP.Config.assistSpeedModifier) or 60) / 100.0
+                            if p.setSpeedMod then p:setSpeedMod(mod) end
+                            if assister.setSpeedMod then assister:setSpeedMod(mod) end
                         end
                     end
                 end
             end
         end
-    end)
+    end
+    if Events.OnTick then Events.OnTick.Add(onAssistServerTick) end
 
-    -- Clean up on death
-    Events.OnCharacterDeath.Add(function(character)
+    local function onServerCharDeath(character)
         if not (character and instanceof(character, "IsoPlayer")) then return end
         if character:isAnimal() then return end
         local md = character:getModData()
@@ -236,15 +231,16 @@ if isServer() then
             local assisterId = md.drp_assisterId
             md.drp_assisted = false
             md.drp_assisterId = nil
-            character:setSpeedMod(1.0)
+            if character.setSpeedMod then character:setSpeedMod(1.0) end
             if assisterId then
                 local assister = getPlayerByOnlineID(assisterId)
                 if assister then
-                    assister:setSpeedMod(1.0)
+                    if assister.setSpeedMod then assister:setSpeedMod(1.0) end
                     sendServerCommand(assister, "DRPKnock", "assiststop", {})
                 end
             end
             sendServerCommand(character, "DRPKnock", "assiststop", {})
         end
-    end)
+    end
+    if Events.OnCharacterDeath then Events.OnCharacterDeath.Add(onServerCharDeath) end
 end
