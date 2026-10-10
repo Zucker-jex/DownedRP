@@ -1,0 +1,17 @@
+{
+    "IGUI_DRP_YouAreDown": "YOU ARE DOWN",
+    "IGUI_DRP_GiveUp": "Give Up",
+    "IGUI_DRP_LastChance": "If you go down again, you won't get back up.",
+    "IGUI_DRP_PickingYouUp": "%1 is picking you up.",
+    "IGUI_DRP_StandUp": "Stand Up",
+    "IGUI_DRP_StandUpBlocked": "Stand Up (wounds untreated: %1)",
+    "IGUI_DRP_ReleaseAssist": "Release Assist",
+    "IGUI_DRP_UseAdrenaline": "Use Adrenaline",
+    "IGUI_DRP_CannotStandUp": "Can't stand up yet — untreated wounds",
+    "IGUI_DRP_ReasonBleeding": "bleeding",
+    "IGUI_DRP_ReasonScratch": "scratch not bandaged",
+    "IGUI_DRP_ReasonCut": "cut not stitched",
+    "IGUI_DRP_ReasonDeepWound": "deep wound not treated",
+    "IGUI_DRP_ReasonBite": "bite not bandaged",
+    "IGUI_DRP_ReasonUnknown": "unknown"
+}

@@ -1,0 +1,128 @@
+VERSION = 1,
+
+option DownedRP.KnockdownEnable =
+{
+    type = boolean, default = true,
+    page = DRPMain, translation = DownedRP_KnockdownEnable,
+}
+
+option DownedRP.KnockdownThreshold =
+{
+    type = integer, min = 1, max = 50, default = 10,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownThreshold,
+}
+
+option DownedRP.BleedoutTimer =
+{
+    type = boolean, default = true,
+    page = DRPKnockdowns, translation = DownedRP_BleedoutTimer,
+}
+
+option DownedRP.KnockdownDurationSec =
+{
+    type = integer, min = 30, max = 3600, default = 300,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownDurationSec,
+}
+
+option DownedRP.MoveWhileDowned =
+{
+    type = boolean, default = true,
+    page = DRPKnockdowns, translation = DownedRP_MoveWhileDowned,
+}
+
+option DownedRP.KnockdownHoldMode =
+{
+    type = enum, numValues = 3, default = 2,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownHoldMode,
+    valueTranslation = DownedRP_KnockdownHoldModes,
+}
+
+option DownedRP.KnockdownHoldHP =
+{
+    type = integer, min = 1, max = 50, default = 10,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownHoldHP,
+}
+
+option DownedRP.DownedPlayerKill =
+{
+    type = boolean, default = false,
+    page = DRPKnockdowns, translation = DownedRP_DownedPlayerKill,
+}
+
+option DownedRP.DownedZombieKill =
+{
+    type = boolean, default = false,
+    page = DRPKnockdowns, translation = DownedRP_DownedZombieKill,
+}
+
+option DownedRP.KnockdownDrainHpPerMin =
+{
+    type = integer, min = 1, max = 100, default = 2,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownDrainHpPerMin,
+}
+
+option DownedRP.KnockdownReviveTime =
+{
+    type = integer, min = 20, max = 2000, default = 200,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownReviveTime,
+}
+
+option DownedRP.KnockdownCrawlSpeedPct =
+{
+    type = integer, min = 1, max = 100, default = 30,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownCrawlSpeedPct,
+}
+
+option DownedRP.KnockdownReviveHP =
+{
+    type = integer, min = 1, max = 100, default = 30,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownReviveHP,
+}
+
+option DownedRP.KnockdownCounters =
+{
+    type = boolean, default = true,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownCounters,
+}
+
+option DownedRP.KnockdownStrikeLimit =
+{
+    type = integer, min = 1, max = 10, default = 3,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownStrikeLimit,
+}
+
+option DownedRP.KnockdownHealingMin =
+{
+    type = integer, min = 1, max = 10080, default = 5,
+    page = DRPKnockdowns, translation = DownedRP_KnockdownHealingMin,
+}
+
+option DownedRP.SelfTreatFirstAidLevel =
+{
+    type = integer, min = -1, max = 10, default = -1,
+    page = DRPKnockdowns, translation = DownedRP_SelfTreatFirstAidLevel,
+}
+
+option DownedRP.AssistEnable =
+{
+    type = boolean, default = true,
+    page = DRPAssist, translation = DownedRP_AssistEnable,
+}
+
+option DownedRP.AssistFollowDistance =
+{
+    type = integer, min = 1, max = 10, default = 2,
+    page = DRPAssist, translation = DownedRP_AssistFollowDistance,
+}
+
+option DownedRP.AssistBreakDistance =
+{
+    type = integer, min = 3, max = 20, default = 5,
+    page = DRPAssist, translation = DownedRP_AssistBreakDistance,
+}
+
+option DownedRP.AssistSpeedModifier =
+{
+    type = integer, min = 10, max = 100, default = 60,
+    page = DRPAssist, translation = DownedRP_AssistSpeedModifier,
+}

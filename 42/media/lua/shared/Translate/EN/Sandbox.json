@@ -1,0 +1,72 @@
+{
+    "Sandbox_DRPMain": "DRPMain",
+    "Sandbox_DRPKnockdowns": "Knockdowns",
+    "Sandbox_DRPAssist": "Assist",
+    "Sandbox_DownedRP_KnockdownEnable": "Enable Knockdowns",
+    "Sandbox_DownedRP_KnockdownEnable_tooltip": "Module for making players go down to a non-combative state when their health drops below a set threshold. Configure at Sandbox_DownedRP - Knockdowns page.",
+
+    "Sandbox_DownedRP_KnockdownThreshold": "Health that triggers a knockdown",
+    "Sandbox_DownedRP_KnockdownThreshold_tooltip": "Health a player must drop under to be knocked down, in percentage.",
+
+    "Sandbox_DownedRP_BleedoutTimer": "Bleedout timer",
+    "Sandbox_DownedRP_BleedoutTimer_tooltip": "Adds a timer until a guaranteed death. Keeps ticking even if the player disconnects to prevent exploitation.",
+
+    "Sandbox_DownedRP_KnockdownDurationSec": "Bleedout time",
+    "Sandbox_DownedRP_KnockdownDurationSec_tooltip": "How much time a player can spend downed before dying, in seconds.",
+
+    "Sandbox_DownedRP_MoveWhileDowned": "Move while downed",
+    "Sandbox_DownedRP_MoveWhileDowned_tooltip": "Whether a downed player is able to crawl or is stuck in place.",
+
+    "Sandbox_DownedRP_KnockdownHoldMode": "Downed Invulnerability",
+    "Sandbox_DownedRP_KnockdownHoldMode_tooltip": "On prevents all damage while downed. Off stops the bleeding but leaves you vulnerable to further attacks from zombies and players. Drain takes your health away until death, increasing the bleedout rate if you crawl.",
+
+    "Sandbox_DownedRP_KnockdownHoldModes": "Off,On,Drain",
+    "Sandbox_DownedRP_KnockdownHoldModes_option1": "Off",
+    "Sandbox_DownedRP_KnockdownHoldModes_option2": "On",
+    "Sandbox_DownedRP_KnockdownHoldModes_option3": "Drain",
+
+    "Sandbox_DownedRP_KnockdownHoldHP": "Downed health",
+    "Sandbox_DownedRP_KnockdownHoldHP_tooltip": "Health buffer the player gets when downed, in percentage.",
+
+    "Sandbox_DownedRP_DownedPlayerKill": "Players can hurt the downed",
+    "Sandbox_DownedRP_DownedPlayerKill_tooltip": "While downed and not invulnerable, a player can still be hit by other players until finished off.",
+
+    "Sandbox_DownedRP_DownedZombieKill": "Zombies can hurt the downed",
+    "Sandbox_DownedRP_DownedZombieKill_tooltip": "While downed and not invulnerable, a player can still be hit by other zombies until finished off. If disabled, zombies will ignore downed players instead.",
+
+    "Sandbox_DownedRP_KnockdownDrainHpPerMin": "Drain Speed",
+    "Sandbox_DownedRP_KnockdownDrainHpPerMin_tooltip": "Health lost per minute while downed and invulnerability is set to drain.",
+
+    "Sandbox_DownedRP_KnockdownCrawlSpeedPct": "Crawl Speed (%)",
+    "Sandbox_DownedRP_KnockdownCrawlSpeedPct_tooltip": "Movement speed while crawling, as a percentage of normal walking speed. Lower is slower.",
+
+    "Sandbox_DownedRP_KnockdownReviveTime": "Helping action length",
+    "Sandbox_DownedRP_KnockdownReviveTime_tooltip": "The amount of time it takes a player to bring a downed player back up, in milliseconds.",
+
+    "Sandbox_DownedRP_KnockdownReviveHP": "Health after being helped up",
+    "Sandbox_DownedRP_KnockdownReviveHP_tooltip": "The health a player is set to after being helped from a downed state, in percentage.",
+
+    "Sandbox_DownedRP_KnockdownCounters": "Count Knockdowns",
+    "Sandbox_DownedRP_KnockdownCounters_tooltip": "If enabled, adds a 'Knockdown' counter for the amount of times a player has been recently downed. After the limit, the player cannot be helped back up.",
+
+    "Sandbox_DownedRP_KnockdownStrikeLimit": "Max Knockdowns Before Death",
+    "Sandbox_DownedRP_KnockdownStrikeLimit_tooltip": "Number of knockdowns allowed within the time window before the next one causes instant death. Set to 1 for instant death on second knockdown.",
+
+    "Sandbox_DownedRP_KnockdownHealingMin": "Knockdowns Counter Timer",
+    "Sandbox_DownedRP_KnockdownHealingMin_tooltip": "The time it takes to lose a knockdown from the counter, in minutes.",
+
+    "Sandbox_DownedRP_SelfTreatFirstAidLevel": "Self-Treatment First Aid Level",
+    "Sandbox_DownedRP_SelfTreatFirstAidLevel_tooltip": "Required First Aid level for a downed player to treat their own wounds. -1 = forbidden, 0 = any level, 1-10 = minimum level required.",
+
+    "Sandbox_DownedRP_AssistEnable": "Enable Assisted Walk",
+    "Sandbox_DownedRP_AssistEnable_tooltip": "After a revive, the rescued player follows the rescuer at reduced speed.",
+
+    "Sandbox_DownedRP_AssistFollowDistance": "Follow Distance",
+    "Sandbox_DownedRP_AssistFollowDistance_tooltip": "Distance in tiles before the rescued player starts pathfinding to the rescuer.",
+
+    "Sandbox_DownedRP_AssistBreakDistance": "Break Distance",
+    "Sandbox_DownedRP_AssistBreakDistance_tooltip": "Distance in tiles at which the assisted walk automatically ends.",
+
+    "Sandbox_DownedRP_AssistSpeedModifier": "Speed Modifier (%)",
+    "Sandbox_DownedRP_AssistSpeedModifier_tooltip": "Movement speed for both players during assisted walk, as a percentage of normal speed."
+}

@@ -1,0 +1,71 @@
+{
+    "Sandbox_DRPMain": "倒地系统",
+    "Sandbox_DRPKnockdowns": "倒地",
+    "Sandbox_DRPAssist": "协助",
+    "Sandbox_DownedRP_KnockdownEnable": "启用倒地",
+    "Sandbox_DownedRP_KnockdownEnable_tooltip": "当玩家血量低于设定阈值时进入倒地状态，而非直接死亡。详细设置见 Sandbox_DownedRP - 倒地 页面。",
+
+    "Sandbox_DownedRP_KnockdownThreshold": "触发倒地的血量阈值",
+    "Sandbox_DownedRP_KnockdownThreshold_tooltip": "玩家血量低于此百分比时触发倒地。",
+
+    "Sandbox_DownedRP_BleedoutTimer": "流血倒计时",
+    "Sandbox_DownedRP_BleedoutTimer_tooltip": "添加倒地后的必死倒计时。即使玩家断线也会继续倒计时，防止利用断线逃避死亡。",
+
+    "Sandbox_DownedRP_KnockdownDurationSec": "倒地存活时间",
+    "Sandbox_DownedRP_KnockdownDurationSec_tooltip": "玩家倒地后可存活的时间（秒）。时间到未被救起则真死。",
+
+    "Sandbox_DownedRP_MoveWhileDowned": "倒地时可移动",
+    "Sandbox_DownedRP_MoveWhileDowned_tooltip": "倒地玩家是否可以爬行移动，还是原地不动。",
+
+    "Sandbox_DownedRP_KnockdownHoldMode": "倒地无敌模式",
+    "Sandbox_DownedRP_KnockdownHoldModes": "关闭,开启,掉血",
+    "Sandbox_DownedRP_KnockdownHoldModes_option1": "关闭",
+    "Sandbox_DownedRP_KnockdownHoldModes_option2": "开启",
+    "Sandbox_DownedRP_KnockdownHoldModes_option3": "掉血",
+    "Sandbox_DownedRP_KnockdownHoldMode_tooltip": "开启：倒地时完全无敌。关闭：停止流血但仍可被攻击。掉血：血量持续下降直到死亡，爬行会加快掉血速度。",
+
+    "Sandbox_DownedRP_KnockdownHoldHP": "倒地血量缓冲",
+    "Sandbox_DownedRP_KnockdownHoldHP_tooltip": "倒地时给予玩家的血量缓冲（百分比）。",
+
+    "Sandbox_DownedRP_DownedPlayerKill": "玩家可攻击倒地者",
+    "Sandbox_DownedRP_DownedPlayerKill_tooltip": "倒地且非无敌时，其他玩家仍可攻击并补刀。",
+
+    "Sandbox_DownedRP_DownedZombieKill": "僵尸可攻击倒地者",
+    "Sandbox_DownedRP_DownedZombieKill_tooltip": "倒地且非无敌时，僵尸仍可攻击。若关闭，僵尸会无视倒地玩家。",
+
+    "Sandbox_DownedRP_KnockdownDrainHpPerMin": "掉血速度",
+    "Sandbox_DownedRP_KnockdownDrainHpPerMin_tooltip": "无敌模式设为“掉血”时，每分钟损失的血量百分比。",
+
+    "Sandbox_DownedRP_KnockdownCrawlSpeedPct": "爬行速度 (%)",
+    "Sandbox_DownedRP_KnockdownCrawlSpeedPct_tooltip": "倒地爬行时的移动速度，为步行速度的百分比。数值越小爬得越慢。",
+
+    "Sandbox_DownedRP_KnockdownReviveTime": "拉起动作耗时",
+    "Sandbox_DownedRP_KnockdownReviveTime_tooltip": "队友拉起倒地玩家所需时间（毫秒）。",
+
+    "Sandbox_DownedRP_KnockdownReviveHP": "拉起后恢复血量",
+    "Sandbox_DownedRP_KnockdownReviveHP_tooltip": "被拉起后玩家恢复的血量百分比。",
+
+    "Sandbox_DownedRP_KnockdownCounters": "统计倒地次数",
+    "Sandbox_DownedRP_KnockdownCounters_tooltip": "启用后记录玩家近期倒地次数。超过限制次数后无法被拉起，下一次直接真死。",
+
+    "Sandbox_DownedRP_KnockdownStrikeLimit": "最大倒地次数",
+    "Sandbox_DownedRP_KnockdownStrikeLimit_tooltip": "时间窗口内允许的倒地次数。超过此次数后下一次倒地直接真死。设为 1 则第二次倒地即死。",
+
+    "Sandbox_DownedRP_KnockdownHealingMin": "倒地计数衰减时间",
+    "Sandbox_DownedRP_KnockdownHealingMin_tooltip": "倒地计数自动减少 1 所需的时间（分钟）。",
+
+    "Sandbox_DownedRP_SelfTreatFirstAidLevel": "自行处理伤口所需急救等级",
+    "Sandbox_DownedRP_SelfTreatFirstAidLevel_tooltip": "倒地玩家自行处理伤口所需的急救等级。-1 = 禁止，0 = 任意等级，1-10 = 最低等级要求。",
+
+    "Sandbox_DownedRP_AssistEnable": "启用搀扶跟随",
+    "Sandbox_DownedRP_AssistEnable_tooltip": "拉起队友后，被救玩家自动跟随救援者，双方移速降低。",
+
+    "Sandbox_DownedRP_AssistFollowDistance": "跟随距离",
+    "Sandbox_DownedRP_AssistFollowDistance_tooltip": "与救援者距离超过此格数时，被救玩家开始寻路跟随。",
+
+    "Sandbox_DownedRP_AssistBreakDistance": "解除距离",
+    "Sandbox_DownedRP_AssistBreakDistance_tooltip": "与救援者距离超过此格数时，自动解除搀扶状态。",
+
+    "Sandbox_DownedRP_AssistSpeedModifier": "移速修正 (%)",
+    "Sandbox_DownedRP_AssistSpeedModifier_tooltip": "搀扶期间双方的移动速度，为正常速度的百分比。"
+}

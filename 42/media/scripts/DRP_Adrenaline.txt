@@ -1,0 +1,17 @@
+module Base
+{
+    item Adrenaline
+    {
+        DisplayName = Adrenaline,
+        DisplayCategory = Medical,
+        Type = Normal,
+        Weight = 0.1,
+        Icon = Adrenaline,
+        MaxStackSize = 5,
+        UseDelta = 1.0,
+        UseWhileEquipped = false,
+        CanStoreWater = false,
+        FluidContainer = false,
+        Tags = Medical;Drug,
+    }
+}

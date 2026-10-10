@@ -1,0 +1,8 @@
+name=DownedRP
+id=DownedRP
+description=DownedRP - Standalone knockdown, self-treatment and assisted-walk system for Project Zomboid B42 multiplayer.\n\nBased on Down But Not Out by phasmoware (Workshop ID 3774055538).\nOriginal code licensed under MIT. See LICENSE_DBNO.txt.\n\nFeatures:\n- Health-threshold knockdowns with crawl, bleedout timer and hold-health modes\n- Teammate "Help Up" revive with configurable duration and restored health\n- Knockdown strike counter: after N knockdowns in a window the next one is fatal\n- Self-treatment: downed players may treat their own wounds if their First Aid level allows it, then stand up\n- Assisted walk: after a revive the rescued player follows the rescuer at reduced speed\n- MoodleFramework moodle showing recent knockdowns\n\nRequires: MoodleFramework
+poster=poster.png
+require=MoodleFramework
+pzversion=42
+tags=Gameplay,Multiplayer,Medical,Roleplay
+version=1.0.0

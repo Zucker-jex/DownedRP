@@ -1,0 +1,17 @@
+{
+    "IGUI_DRP_YouAreDown": "你已倒地",
+    "IGUI_DRP_GiveUp": "放弃",
+    "IGUI_DRP_LastChance": "再倒地一次就回不来了。",
+    "IGUI_DRP_PickingYouUp": "%1 正在拉你起来。",
+    "IGUI_DRP_StandUp": "站起",
+    "IGUI_DRP_StandUpBlocked": "站起 (伤口未处理: %1)",
+    "IGUI_DRP_ReleaseAssist": "解除搀扶",
+    "IGUI_DRP_UseAdrenaline": "使用肾上腺素",
+    "IGUI_DRP_CannotStandUp": "还不能站起来 — 有未处理的伤口",
+    "IGUI_DRP_ReasonBleeding": "流血中",
+    "IGUI_DRP_ReasonScratch": "抓伤未包扎",
+    "IGUI_DRP_ReasonCut": "割伤未缝合",
+    "IGUI_DRP_ReasonDeepWound": "深伤口未处理",
+    "IGUI_DRP_ReasonBite": "咬伤未包扎",
+    "IGUI_DRP_ReasonUnknown": "未知"
+}

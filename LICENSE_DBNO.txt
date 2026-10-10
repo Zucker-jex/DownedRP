@@ -1,0 +1,47 @@
+DownedRP is a derivative work based on "Down But Not Out" (DBNO) by phasmoware.
+
+    Original mod:  Down But Not Out
+    Author:        phasmoware
+    Workshop ID:   3774055538
+    License:       MIT
+
+The knockdown state machine, the knockdown/revive network commands, the
+server-side knockdown bookkeeping, the knockdown Moodle and the
+_knockedd_* animation sets in this mod are adapted from that project.
+DownedRP keeps only the Knockdown module; the Wounds, Respawn and Loot
+Cache modules of the original are not included.
+
+Permission to modify and republish was granted by the original author.
+The original MIT licence and copyright notice are preserved below.
+
+--------------------------------------------------------------------------
+MIT License
+
+Copyright (c) phasmoware
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+--------------------------------------------------------------------------
+
+Changes made for DownedRP:
+  * Global namespace renamed from DBNO to DRP.
+  * Wounds, Respawn, Snapshot, Loot Cache and Admin UI modules removed.
+  * Self-treatment of wounds while downed, gated on First Aid level.
+  * Self get-up once every wound is treated.
+  * Assisted-walk follow system after a revive.
+  * Sandbox options trimmed and re-paged under DRPMain / DRPAssist.
