@@ -13,5 +13,8 @@
     "IGUI_DRP_ReasonCut": "割伤未缝合",
     "IGUI_DRP_ReasonDeepWound": "深伤口未处理",
     "IGUI_DRP_ReasonBite": "咬伤未包扎",
-    "IGUI_DRP_ReasonUnknown": "未知"
+    "IGUI_DRP_ReasonUnknown": "未知",
+    "IGUI_DRP_SelfTreatForbidden": "倒地期间无法自行处理伤口",
+    "IGUI_DRP_CannotSelfTreat": "倒地期间无法自行处理伤口",
+    "IGUI_DRP_NeedFirstAidLevel": "急救等级不足（需要 %1 级）"
 }

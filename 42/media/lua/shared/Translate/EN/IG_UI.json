@@ -13,5 +13,8 @@
     "IGUI_DRP_ReasonCut": "cut not stitched",
     "IGUI_DRP_ReasonDeepWound": "deep wound not treated",
     "IGUI_DRP_ReasonBite": "bite not bandaged",
-    "IGUI_DRP_ReasonUnknown": "unknown"
+    "IGUI_DRP_ReasonUnknown": "unknown",
+    "IGUI_DRP_SelfTreatForbidden": "Cannot self-treat while downed",
+    "IGUI_DRP_CannotSelfTreat": "Cannot self-treat while downed",
+    "IGUI_DRP_NeedFirstAidLevel": "First Aid level too low (need %1)"
 }

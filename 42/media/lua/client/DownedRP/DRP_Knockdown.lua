@@ -55,9 +55,7 @@ end
 -- Client-side speed helper. The server sets the authoritative value; this
 -- one keeps the local render in sync. In B42 the crawl pose takes its
 -- movement step from the animation SpeedScale, so the actual crawl speed is
--- controlled by the _knockedd_walk/run/sprint XML files. This helper is kept
--- so the sandbox value is still applied on any build where setSpeedMod does
--- affect the crawl, and so both sides stay consistent.
+-- controlled by the _knockedd_walk/run/sprint XML files.
 local function applyCrawlSpeed(player)
     if player == nil then return end
     local pct = cfg().knockdownCrawlSpeedPct or 30
@@ -150,8 +148,14 @@ local function enterDownedState(player, startMs)
         if parts ~= nil then
             for i = 0, BodyPartType.ToIndex(BodyPartType.MAX) - 1 do
                 local bp = parts:get(i)
-                if bp ~= nil and bp:bandaged() then
-                    md.drp_preTreated[i] = true
+                if bp ~= nil then
+                    md.drp_preTreated[i] = {
+                        bandaged  = bp:bandaged(),
+                        stitched  = bp:stitched(),
+                        splint    = bp:isSplint(),
+                        bullet    = bp:haveBullet(),
+                        glass     = bp:haveGlass(),
+                    }
                 end
             end
         end
@@ -390,7 +394,7 @@ function K.onPlayerUpdate(player)
     if K._dyingForReal then return end
     local md = player:getModData()
 
-    -- Speed state transition ------------------------------------------------
+    -- Speed state transition
     local isDownedNow = md.drp_downed == true
     if isDownedNow ~= K._wasDowned then
         if isDownedNow then
@@ -430,20 +434,45 @@ function K.onPlayerUpdate(player)
             end
         end
 
+        -- Undo any treatment applied while self-treatment is forbidden.
+        -- Catches the medical actions that bypass ISTimedActionQueue.add in
+        -- B42 (the health panel applies its edits directly), and surfaces the
+        -- reason with a HaloText prompt.
         if md.drp_noSelfTreat then
             local bd = player:getBodyDamage()
             local parts = bd and bd:getBodyParts()
             if parts ~= nil then
                 local pre = md.drp_preTreated or {}
+                local undone = false
                 for i = 0, BodyPartType.ToIndex(BodyPartType.MAX) - 1 do
                     local bp = parts:get(i)
-                    if bp ~= nil and bp:bandaged() and not pre[i] then
-                        bp:setBandaged(false, false)
-                        local p = getPlayer()
-                        if p and HaloTextHelper and HaloTextHelper.addText then
-                            HaloTextHelper.addText(p, getText("IGUI_DRP_SelfTreatForbidden"))
+                    if bp ~= nil then
+                        local s = pre[i] or {}
+
+                        if bp:bandaged() and not s.bandaged then
+                            bp:setBandaged(false, false)
+                            undone = true
+                        end
+                        if bp:stitched() and not s.stitched then
+                            bp:setStitched(false)
+                            undone = true
+                        end
+                        if bp:isSplint() and not s.splint then
+                            bp:setSplint(false, 0)
+                            undone = true
+                        end
+                        if bp:haveBullet() and not s.bullet then
+                            bp:setHaveBullet(false, 0)
+                            undone = true
+                        end
+                        if bp:haveGlass() and not s.glass then
+                            bp:setHaveGlass(false)
+                            undone = true
                         end
                     end
+                end
+                if undone and DRP.notifySelfTreatBlocked then
+                    DRP.notifySelfTreatBlocked(player)
                 end
             end
         end
@@ -808,6 +837,13 @@ end
 
 --------------------------------------------------------------------------------
 -- ISTimedActionQueue hook
+--
+-- While downed:
+--   * Movement actions are always allowed (crawling).
+--   * Medical actions AND the health panel are gated on selfTreatAllowed.
+--     When self-treatment is forbidden the panel cannot be opened, so the
+--     player has no route to bandage a wound. A HaloText prompt explains why.
+--   * Everything else is blocked silently.
 --------------------------------------------------------------------------------
 
 if ISTimedActionQueue ~= nil then
@@ -819,24 +855,23 @@ if ISTimedActionQueue ~= nil then
             if md and md.drp_downed and not (action and action.dbnoBypassLockout) then
                 local name = DRP.actionName(action)
 
-                local isMove = DRP.isMovementAction and DRP.isMovementAction(action)
-                if isMove then
+                if DRP.isMovementAction and DRP.isMovementAction(action) then
                     return _origAdd(action)
                 end
 
-                local allowSelfTreat = DRP.selfTreatAllowed(p)
-                local isMed = DRP.isMedicalAction(action)
                 local isUI  = DRP.isUIAction and DRP.isUIAction(action)
+                local isMed = DRP.isMedicalAction(action)
 
-                if isMed or isUI then
-                    if allowSelfTreat then
+                if isUI or isMed then
+                    if DRP.selfTreatAllowed(p) then
                         return _origAdd(action)
                     end
-                    print("[DownedRP] blocked (self-treat forbidden): " .. tostring(name))
+                    if DRP.notifySelfTreatBlocked then
+                        DRP.notifySelfTreatBlocked(p)
+                    end
                     return
                 end
 
-                print("[DownedRP] blocked action: " .. tostring(name))
                 return
             end
         end

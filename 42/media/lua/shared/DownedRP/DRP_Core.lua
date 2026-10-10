@@ -266,6 +266,46 @@ function DRP.selfTreatAllowed(player, level)
 end
 
 --------------------------------------------------------------------------------
+-- Self-treat notification
+--
+-- Shows a HaloText prompt above the player's head when a medical action is
+-- blocked because self-treatment is not permitted: either the sandbox forbids
+-- it entirely (-1) or the player's First Aid level is too low. Rate limited so
+-- repeated clicks do not spam the halo line.
+--------------------------------------------------------------------------------
+
+local _lastSelfTreatNote = 0
+local SELF_TREAT_NOTE_COOLDOWN_MS = 1500
+
+function DRP.notifySelfTreatBlocked(player)
+    if player == nil then return end
+    local now = DRP.nowMs()
+    if (now - _lastSelfTreatNote) < SELF_TREAT_NOTE_COOLDOWN_MS then return end
+    _lastSelfTreatNote = now
+
+    -- Read the sandbox value live, same as selfTreatAllowed does.
+    local level = nil
+    local ns = (type(SandboxVars) == "table") and SandboxVars.DownedRP or nil
+    if ns ~= nil and type(ns.SelfTreatFirstAidLevel) == "number" then
+        level = ns.SelfTreatFirstAidLevel
+    end
+    if level == nil then
+        level = DRP.cfg().selfTreatFirstAidLevel
+    end
+
+    local msg
+    if level == nil or level < 0 then
+        msg = getText("IGUI_DRP_CannotSelfTreat")
+    else
+        msg = getText("IGUI_DRP_NeedFirstAidLevel", tostring(level))
+    end
+
+    if HaloTextHelper and HaloTextHelper.addText then
+        HaloTextHelper.addText(player, msg)
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Timed action classification
 --------------------------------------------------------------------------------
 
